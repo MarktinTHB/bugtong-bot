@@ -32,7 +32,7 @@ async def ping(ctx):
 
     # 🎨 Set color based on latency
     if latency < 100:
-        color = discord.Color.from_str("#FF5733")
+        color = discord.Color.from_str("#a8d0fc")
         status = "Stable"
     elif latency < 200:
         color = discord.Color.from_str("#fce56b")
