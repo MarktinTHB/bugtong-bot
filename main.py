@@ -27,6 +27,29 @@ async def on_ready():
     print(f"{bot.user.name} has connected to Discord!")
 
 @bot.command()
+async def ping(ctx):
+    latency = round(bot.latency * 1000)
+
+    # 🎨 Set color based on latency
+    if latency < 100:
+        color = discord.Color.from_str("#FF5733")
+        status = "Stable"
+    elif latency < 200:
+        color = discord.Color.from_str("#fce56b")
+        status = "Unstable"
+    else:
+        color = discord.Color.from_str("#fab4bc")
+        status = "Critical"
+
+    embed = discord.Embed(
+        title="Checking the bot's status...",
+        description=f"**Latency:** `{latency} ms`\n**Current Status:** `{status}`",
+        color=color
+    )
+
+    await ctx.send(embed=embed)
+
+@bot.command()
 async def announcements(ctx):
     try:
         # API request
