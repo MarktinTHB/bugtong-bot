@@ -20,6 +20,7 @@ load_dotenv()
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+BASE_URL = os.getenv("BASE_URL")
 
 # =====================================================================================================================
 # 💾 DISCORD SETUP
@@ -44,7 +45,6 @@ bot = commands.Bot(
 # 📊 SUPABASE CONFIGURATION
 # =====================================================================================================================
 
-BASE_URL = "https://pxjerucwrtluerlccmdn.supabase.co/rest/v1"
 HEADERS = {
     "apikey": SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",
@@ -178,7 +178,7 @@ async def testdaily(ctx):
 
     # Role and Channel - Variables:
     roleNotifier = 1495465150126493876
-    announceChannel = 1495463620082012240
+    announceChannel = 1495366334081404954
 
     # Date and Time - Variables:
     rawDate = bugtongClue.get("play_date")
