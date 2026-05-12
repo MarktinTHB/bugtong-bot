@@ -3,14 +3,15 @@
 # Developed by: Sean Martin Tabelisma (@marktinthb)
 # =====================================================================================================================
 
-import discord
-from datetime import datetime
-from discord.ext import tasks
-from discord.ext import commands
-import logging
-from dotenv import load_dotenv
 import os
+import discord
+import logging
 import requests
+from datetime import time
+from discord.ext import tasks
+from dotenv import load_dotenv
+from discord.ext import commands
+from datetime import datetime
 
 # =====================================================================================================================
 # ⚙️ LOAD ENV VARIABLES & TOKENS
@@ -57,72 +58,102 @@ HEADERS = {
 
 @bot.event
 async def on_ready():
-    print(f"{bot.user} is online!")
-    if not dailyBugtong.is_running():
+    print(f"✅ {bot.user} is online!")
+
+    if not hasattr(bot, "dailyStarted"):
         dailyBugtong.start()
-        print(f"» dailyBugtong.seq is initialized.")
+        bot.dailyStarted = True
+        print(f"» dailyBugtong.seq has been initialized.")
+
+    botActivity = discord.Activity(
+        type=discord.ActivityType.playing,
+        name="🧠 bugtong.online | [v0.3.5]",
+        state="Try to solve our bugtong of the day!"
+    )
+    await bot.change_presence(activity=botActivity, status=discord.Status.online)
+    print(f"» botActivity.seq has been initialized.")
+
 
 # =====================================================================================================================
 # 🕓 SCHEDULED POST: SHOW THE BUGTONG OF THE DAY! (dailyBugtong.seq)
 # - Displays today's bugtong from #🧠｜bugtong-today.
 # =====================================================================================================================
 
-@tasks.loop(time=datetime.strptime("16:00", "%H:%M").time())
+@tasks.loop(time=time(hour=16, minute=00))  # Time is set to: 4:00 PM (UTC) = 12:00 AM (PHT)
 async def dailyBugtong():
+    try:
+        url = (
+            f"{BASE_URL}/daily_clues"
+            "?select=clue_text,play_date,answer,profiles(display_name)"
+            "&order=play_date.desc"
+            "&limit=1"
+        )
 
-    url = (
-        f"{BASE_URL}/daily_clues"
-        "?select=clue_text,play_date,answer,profiles(display_name)"
-        "&order=play_date.desc"
-        "&limit=1"
-    )
+        response = requests.get(url, headers=HEADERS)
+        response.raise_for_status()  # Raises an HTTPError for bad responses
+        data = response.json()
 
-    response = requests.get(url, headers=HEADERS)
-    data = response.json()
+        if not data:
+            print("No bugtong data available")
+            return
 
-    if not data:
-        return
+        bugtongClue = data[0]
 
-    bugtongClue = data[0]
+        # Role and Channel - Variables:
+        roleNotifier = 1495465150126493876
+        announceChannel = 1495463620082012240
 
-    # Role and Channel - Variables:
-    roleNotifier = 1495465150126493876
-    announceChannel = 1495463620082012240
+        # Date and Time - Variables:
+        rawDate = bugtongClue.get("play_date")
+        if not rawDate:
+            print("No play_date found in data")
+            return
 
-    # Date and Time - Variables:
-    rawDate = bugtongClue.get("play_date")
-    dayToday = datetime.strptime(rawDate, "%Y-%m-%d").strftime("%A")
-    dateToday = datetime.strptime(rawDate, "%Y-%m-%d").strftime("%B %d, %Y")
+        dayToday = datetime.strptime(rawDate, "%Y-%m-%d").strftime("%A")
+        dateToday = datetime.strptime(rawDate, "%Y-%m-%d").strftime("%B %d, %Y")
 
-    # Today's Bugtong - Variables:
-    userProfile = bugtongClue.get("profiles") or {}
-    displayWriter = userProfile.get("display_name") or "Processing..."
-    displayClue = bugtongClue.get("clue_text") or "No clue available!"
-    displayAnswer = bugtongClue.get("answer") or ""
-    displayAnswerLength = len(displayAnswer.replace(" ", ""))
+        # Today's Bugtong - Variables:
+        userProfile = bugtongClue.get("profiles", {})
+        displayWriter = userProfile.get("display_name", "Unknown Author")
+        displayClue = bugtongClue.get("clue_text", "No clue available!")
+        displayAnswer = bugtongClue.get("answer", "")
+        displayAnswerLength = len(displayAnswer.replace(" ", ""))
 
-    embed = discord.Embed(
-        title=f"BUGTONG OF THE DAY! · {dayToday} — {dateToday}",
-        color=discord.Color.from_str("#c4b5fd")
-    )
-    embed.set_author(
-        name=f"Clue written by: {displayWriter}"
-    )
-    embed.add_field(
-        name=f"{displayClue} ({displayAnswerLength})",
-        value="> **How is your experience solving this clue? Rate it below!**",
-        inline=False
-    )
-    embed.set_footer(
-        text="Haven't solved it yet? Head to bugtong.online now to solve it.",
-        icon_url="https://i.imgur.com/PHDkpkx.png"
-    )
+        embed = discord.Embed(
+            title=f"BUGTONG OF THE DAY! · {dayToday} — {dateToday}",
+            color=discord.Color.from_str("#c4b5fd")
+        )
+        embed.set_author(
+            name=f"Clue written by: {displayWriter}"
+        )
+        embed.add_field(
+            name=f"{displayClue} ({displayAnswerLength})",
+            value="> **How is your experience solving this clue? Rate it below!**",
+            inline=False
+        )
+        embed.set_footer(
+            text="Haven't solved it yet? Head to bugtong.online now to solve it.",
+            icon_url="https://i.imgur.com/PHDkpkx.png"
+        )
 
-    displayChannel = bot.get_channel(announceChannel)
-    embedClue = await displayChannel.send(content=f"<@&{roleNotifier}>", embed=embed)
-    await embedClue.add_reaction("👍")
-    await embedClue.add_reaction("👎")
+        displayChannel = bot.get_channel(announceChannel)
+        if not displayChannel:
+            print(f"Channel {announceChannel} not found!")
+            return
 
+        embedClue = await displayChannel.send(content=f"<@&{roleNotifier}>", embed=embed)
+        await embedClue.add_reaction("👍")
+        await embedClue.add_reaction("👎")
+        print(f"✅ Daily bugtong posted successfully for {dateToday}!")
+
+    except requests.RequestException as e:
+        print(f"❌ API Error in dailyBugtong: {e}")
+    except ValueError as e:
+        print(f"❌ Date parsing error: {e}")
+    except discord.HTTPException as e:
+        print(f"❌ Discord API error: {e}")
+    except Exception as e:
+        print(f"❌ Unexpected error in dailyBugtong: {e}")
 
 # =====================================================================================================================
 # 🔒 ADMIN COMMAND: SHOW DAILY BUGTONG COMMAND (?testdaily)
@@ -210,6 +241,8 @@ async def testdaily(ctx):
     )
 
     displayChannel = bot.get_channel(announceChannel)
+    if displayChannel is None:
+        return await ctx.send("**An error has occurred...**")
     embedClue = await displayChannel.send(content=f"<@&{roleNotifier}>", embed=embed)
     await embedClue.add_reaction("👍")
     await embedClue.add_reaction("👎")
