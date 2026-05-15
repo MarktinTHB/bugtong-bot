@@ -1,6 +1,10 @@
 # =====================================================================================================================
-# 🧠 BUGTONGCRYPTIC'S BUGTONG BOT [v0.3.7]
+# 🧠 BUGTONGCRYPTIC'S BUGTONG BOT
 # Developed by: Sean Martin Tabelisma (@marktinthb)
+
+versionValue = "v0.3.9"
+botDeveloper = "MarktinTHB"
+
 # =====================================================================================================================
 
 import os
@@ -68,7 +72,7 @@ async def on_ready():
 
     botActivity = discord.Activity(
         type=discord.ActivityType.playing,
-        name="🧠 bugtong.online | [v0.3.7]",
+        name=f"🧠 bugtong.online | [{versionValue}]",
         state="Try to solve our bugtong of the day!"
     )
     await bot.change_presence(activity=botActivity, status=discord.Status.online)
@@ -106,6 +110,7 @@ async def on_message(message):
                 print(f"[CLUE THREAD DEBUGGER] Thread creation error: {e}")
         else:
             try:
+                await message.delete()
                 invalid_msg = f"❌ **Invalid format!** {message.author.mention} Please use `(5)` or `(6, 4, 2)` for your answer length at the end!"
                 await message.channel.send(invalid_msg, delete_after=5)
             except Exception as e:
