@@ -4,6 +4,7 @@
 # =====================================================================================================================
 
 import os
+import re
 import discord
 import logging
 import requests
@@ -73,6 +74,44 @@ async def on_ready():
     await bot.change_presence(activity=botActivity, status=discord.Status.online)
     print(f"» botActivity.seq has been initialized.")
 
+# =====================================================================================================================
+# 📁 ACTION: AUTOCREATES A THREAD (clueThread.seq)
+# - Creates a thread in the share your bugtong channel.
+# =====================================================================================================================
+
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    targetChannel = 1504680610411712562
+    print(f"» clueThread.seq has been initialized.")
+
+    if message.channel.id == targetChannel:
+        print(f"[CLUE THREAD DEBUGGER] Checking message content: '{message.content}'")
+
+        # Regex: matches (5) or (6, 4, 2) at end of message.
+        matchClue = re.search(r'\((.*?)\)', message.content.strip())
+
+        if matchClue:
+            thread_name = f"{message.content}・{message.author.display_name}"
+
+            try:
+                await message.create_thread(
+                    name=thread_name[:100],
+                    auto_archive_duration=10080
+                )
+                print(f"[CLUE THREAD DEBUGGER] Thread '{thread_name}' has been created!")
+            except Exception as e:
+                print(f"[CLUE THREAD DEBUGGER] Thread creation error: {e}")
+        else:
+            try:
+                invalid_msg = f"❌ **Invalid format!** {message.author.mention} Please use `(5)` or `(6, 4, 2)` for your answer length at the end!"
+                await message.channel.send(invalid_msg, delete_after=5)
+            except Exception as e:
+                print(f"[CLUE THREAD DEBUGGER] Invalid format error: {e}")
+
+    await bot.process_commands(message)
 
 # =====================================================================================================================
 # 🕓 SCHEDULED POST: SHOW THE BUGTONG OF THE DAY! (dailyBugtong.seq)
@@ -156,12 +195,12 @@ async def dailyBugtong():
         print(f"❌ Unexpected error in dailyBugtong: {e}")
 
 # =====================================================================================================================
-# 🔒 ADMIN COMMAND: SHOW DAILY BUGTONG COMMAND (?testdaily)
-# - Forcefully displays today's bugtong from #🧠｜bugtong-today.
+# 🔒 ADMIN COMMAND: SHOW DAILY BUGTONG COMMAND (?testdaily [channel])
+# - Forcefully displays today's bugtong. Use ?testdaily #channel or ?testdaily 123456 to specify channel.
 # =====================================================================================================================
 
 @bot.command()
-async def testdaily(ctx):
+async def testdaily(ctx, channel: discord.TextChannel = None):
 
     allowed_roles = [
         1495366331904688230,
@@ -174,6 +213,14 @@ async def testdaily(ctx):
         embed = discord.Embed(
             title="An error has occurred!",
             description="**You are not allowed to do this.**",
+            color=discord.Color.from_str("#fab4bc")
+        )
+        return await ctx.send(embed=embed)
+
+    if not BASE_URL:
+        embed = discord.Embed(
+            title="Configuration error!",
+            description="**BASE_URL is not configured.**",
             color=discord.Color.from_str("#fab4bc")
         )
         return await ctx.send(embed=embed)
@@ -209,7 +256,13 @@ async def testdaily(ctx):
 
     # Role and Channel - Variables:
     roleNotifier = 1495465150126493876
-    announceChannel = 1495366334081404954
+    defaultChannel = 1495366334081404954
+
+    # Use provided channel or default
+    displayChannel = channel or bot.get_channel(defaultChannel)
+
+    if displayChannel is None:
+        return await ctx.send("**Target channel not found!**")
 
     # Date and Time - Variables:
     rawDate = bugtongClue.get("play_date")
@@ -240,9 +293,6 @@ async def testdaily(ctx):
         icon_url="https://i.imgur.com/PHDkpkx.png"
     )
 
-    displayChannel = bot.get_channel(announceChannel)
-    if displayChannel is None:
-        return await ctx.send("**An error has occurred...**")
     embedClue = await displayChannel.send(content=f"<@&{roleNotifier}>", embed=embed)
     await embedClue.add_reaction("👍")
     await embedClue.add_reaction("👎")
@@ -254,6 +304,11 @@ async def testdaily(ctx):
 
 @bot.command()
 async def ping(ctx):
+
+    allowed_roles = [
+        1495366331904688230,
+        1495366331904688231
+    ]
 
     latencyValue = round(bot.latency * 1000)
 
