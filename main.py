@@ -1,5 +1,5 @@
 # =====================================================================================================================
-# 🧠 BUGTONGCRYPTIC'S BUGTONG BOT [v0.3]
+# 🧠 BUGTONGCRYPTIC'S BUGTONG BOT [v0.3.7]
 # Developed by: Sean Martin Tabelisma (@marktinthb)
 # =====================================================================================================================
 
@@ -68,7 +68,7 @@ async def on_ready():
 
     botActivity = discord.Activity(
         type=discord.ActivityType.playing,
-        name="🧠 bugtong.online | [v0.3.5]",
+        name="🧠 bugtong.online | [v0.3.7]",
         state="Try to solve our bugtong of the day!"
     )
     await bot.change_presence(activity=botActivity, status=discord.Status.online)
